@@ -211,6 +211,67 @@ acceptance → collection → barcode trail → forecast → backtest.
 | `GET` | `/api/admin/backtest?model=` | admin | Score the model on unseen history |
 | `GET` | `/api/admin/metrics` | admin | Headline impact metrics |
 | `POST` | `/api/admin/escalate` | admin | Run one escalation cycle |
+| `GET` | `/api/meta/spec` | public | Escalation ladder and thresholds actually in force |
+| `GET` | `/api/meta/pulse` | public | Live counts straight from the database |
+| `GET` | `/api/meta/accuracy` | public | Backtest scores for both forecast models |
+
+---
+
+## Web client
+
+The repo ships with a React + TypeScript console under `web/`. Every figure it
+renders is read from the API above — there is no hard-coded copy of a metric,
+no mocked data source, and no second calculation of a number the backend
+already owns.
+
+```bash
+cd web
+npm install
+npm run build      # emits web/dist
+```
+
+`app/main.py` mounts `web/dist` on the same origin as the API when it exists, so
+a single `uvicorn` process serves both. Hashed assets are streamed from disk and
+every other path falls through to `index.html`, which keeps client-side routes
+alive across a hard refresh. Paths under `/api` that miss still return a real
+404 rather than the SPA shell. A fresh clone works before anyone has built the
+frontend: the API simply runs on its own.
+
+For frontend development, `npm run dev` starts Vite on its own port and proxies
+`/api` to `http://127.0.0.1:8000`, so hot reload works against the live backend
+without CORS configuration.
+
+### Screens
+
+| Route | Role | What it does |
+|---|---|---|
+| `/` | public | Landing page; live pulse, the escalation ladder as configured, and measured forecast accuracy |
+| `/login`, `/register` | public | Credential sign-in and donor self-registration |
+| `/donor` | donor | Eligibility countdown and current alerts |
+| `/donor/alerts` | donor | Open alerts with distance and one-tap accept/decline |
+| `/donor/history` | donor | Past donations and the cooldown they impose |
+| `/donor/profile` | donor | Blood group, district, coordinates, availability, verification |
+| `/hospital` | hospital | Stock posture and open requests |
+| `/hospital/requests` | hospital | Raise a request, watch the match funnel and escalation tier |
+| `/hospital/inventory` | hospital | Per-group stock and consumption logging |
+| `/hospital/actions` | hospital | Register a collected unit against a fulfilled request |
+| `/admin` | admin | Live metrics, the forecaster, the backtest comparison, an on-demand escalation sweep and the audit trail |
+
+### Verification
+
+Two harnesses exercise the client against a running server:
+
+```bash
+python scripts/e2e_web.py          # 30 API-contract checks, incl. the escalation ladder
+node web/scripts/browser-check.mjs # 28 browser checks across all three roles
+node web/scripts/design-audit.mjs  # 26 layout/contrast/structure checks
+```
+
+The browser check fails on any console error, page error or 5xx response, and
+the design audit asserts the dark base, WCAG AA contrast, single-`h1` hierarchy,
+absence of emoji and of horizontal overflow at desktop, tablet and phone widths.
+Playwright is a dev dependency of `web/`; run `npx playwright install chromium`
+once after `npm install`.
 
 ---
 
