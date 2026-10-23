@@ -215,6 +215,31 @@ rec(
   external.length ? external.slice(0, 3).join(', ') : 'fonts and assets are all same-origin',
 )
 
+// The CSS stack says "Inter" even when a font fails to load, so ask the font
+// set directly and confirm woff2 files were fetched from this origin.
+const fonts = await p.evaluate(async () => {
+  await document.fonts.ready
+  const families = ['Inter', 'Instrument Serif', 'JetBrains Mono']
+  return {
+    available: Object.fromEntries(
+      families.map((family) => [family, document.fonts.check(`16px "${family}"`)]),
+    ),
+    files: performance
+      .getEntriesByType('resource')
+      .map((entry) => entry.name)
+      .filter((name) => name.endsWith('.woff2'))
+      .map((name) => name.split('/').pop()),
+  }
+})
+const missing = Object.entries(fonts.available)
+  .filter(([, ok]) => !ok)
+  .map(([family]) => family)
+rec(
+  'all three typefaces load from this origin',
+  missing.length === 0 && fonts.files.length > 0,
+  missing.length ? `not loaded: ${missing.join(', ')}` : fonts.files.join(', '),
+)
+
 // --- document metadata ----------------------------------------------------
 const meta = await p.evaluate(() => {
   const content = (selector) =>
