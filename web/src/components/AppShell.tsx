@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 
 import { landingPathFor, useAuth } from '../auth/AuthProvider'
+import { usePageMeta } from '../hooks/usePageMeta'
 import { Logo } from './Logo'
 import { LogOut, Menu, X } from './Icons'
 
@@ -143,6 +144,16 @@ export function ConsoleFrame({
   children: ReactNode
 }) {
   const location = useLocation()
+  const current = nav?.find((item) => item.to === location.pathname)
+
+  // Consoles are behind a JWT and have nothing to offer a search result, so
+  // every one of them is explicitly excluded from indexing.
+  usePageMeta({
+    title: current ? `${section} · ${current.label}` : section,
+    description:
+      'Signed-in console for the Blood Donation Network demonstration. Not indexed.',
+    noindex: true,
+  })
 
   return (
     <div className="console">
@@ -163,7 +174,7 @@ export function ConsoleFrame({
           </div>
         </nav>
       )}
-      <main className="console-main" key={location.pathname}>
+      <main id="main" tabIndex={-1} className="console-main" key={location.pathname}>
         <div className="shell-wide">{children}</div>
       </main>
     </div>

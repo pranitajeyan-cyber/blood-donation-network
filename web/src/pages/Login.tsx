@@ -6,6 +6,7 @@ import { Logo } from '../components/Logo'
 import { ArrowRight } from '../components/Icons'
 import { Button, Field, TextInput } from '../components/ui'
 import { InlineNotice } from '../components/States'
+import { usePageMeta } from '../hooks/usePageMeta'
 import { validateEmail, validatePassword } from '../lib/validate'
 
 const DEMO_ACCOUNTS = [
@@ -18,6 +19,13 @@ export default function Login() {
   const { signIn } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+
+  usePageMeta({
+    title: 'Sign in',
+    description:
+      'Sign in to the donor, blood bank or platform admin console of the Blood Donation Network demonstration.',
+    noindex: true,
+  })
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -54,7 +62,7 @@ export default function Login() {
   }
 
   return (
-    <div className="auth">
+    <div className="auth" id="main" tabIndex={-1}>
       <div className="auth__panel">
         <div className="auth__brand">
           <Link to="/" aria-label="Back to the home page">

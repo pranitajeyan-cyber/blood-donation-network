@@ -5,6 +5,7 @@ import { landingPathFor, useAuth } from '../auth/AuthProvider'
 import { Logo } from '../components/Logo'
 import { ArrowRight } from '../components/Icons'
 import { InlineNotice } from '../components/States'
+import { usePageMeta } from '../hooks/usePageMeta'
 import { Button, Field, Select, TextInput } from '../components/ui'
 import { validateEmail, validateName, validatePassword, validatePhone } from '../lib/validate'
 import type { BloodGroup } from '../api/types'
@@ -14,6 +15,12 @@ const BLOOD_GROUPS: BloodGroup[] = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 
 export default function Register() {
   const { signUp } = useAuth()
   const navigate = useNavigate()
+
+  usePageMeta({
+    title: 'Register as a donor',
+    description:
+      'Create a donor account: blood group, district and availability. The platform matches you only to requests you are compatible with and eligible for.',
+  })
 
   const [form, setForm] = useState({
     name: '',
@@ -62,7 +69,7 @@ export default function Register() {
   }
 
   return (
-    <div className="auth">
+    <div className="auth" id="main" tabIndex={-1}>
       <div className="auth__panel">
         <div className="auth__brand">
           <Link to="/" aria-label="Back to the home page">
@@ -196,6 +203,12 @@ export default function Register() {
             >
               Create account
             </Button>
+
+            <p className="auth__consent">
+              By creating an account you agree to the <Link to="/terms">terms of use</Link>{' '}
+              and the <Link to="/privacy">privacy notice</Link>. This is a demonstration:
+              do not enter another person's details.
+            </p>
 
             <p className="auth__footer">
               Already registered?{' '}

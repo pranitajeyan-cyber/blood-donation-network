@@ -8,7 +8,9 @@
   display: inline-flex;
   align-items: center;
   gap: var(--s-2);
-  border-radius: var(--r-pill);
+  /* A squared 6px corner, not a pill. Pills read as generic app chrome; a
+     machined edge reads as an instrument, which is what this is. */
+  border-radius: var(--r-sm);
   font-size: var(--text-sm);
   font-weight: 500;
   line-height: 1;
@@ -208,14 +210,14 @@
   display: inline-flex;
   gap: 1px;
   padding: 2px;
-  border-radius: var(--r-pill);
+  border-radius: var(--r-sm);
   border: 1px solid var(--line-soft);
   background: var(--surface-inset);
 }
 
 .segmented__item {
   padding: 0.38rem 0.8rem;
-  border-radius: var(--r-pill);
+  border-radius: var(--r-xs);
   font-size: var(--text-xs);
   color: var(--ink-tertiary);
   transition: all var(--t-fast) var(--ease-out);
@@ -237,7 +239,7 @@
   align-items: center;
   gap: 0.38rem;
   padding: 0.24rem 0.58rem;
-  border-radius: var(--r-pill);
+  border-radius: var(--r-xs);
   border: 1px solid var(--line-soft);
   font-size: var(--text-2xs);
   font-family: var(--font-mono);

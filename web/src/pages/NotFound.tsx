@@ -10,7 +10,7 @@ export default function NotFound() {
   const { user } = useAuth()
 
   return (
-    <div className="notfound">
+    <div className="notfound" id="main" tabIndex={-1}>
       <Logo size={34} />
       <p className="notfound__code" aria-hidden="true">
         404

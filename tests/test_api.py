@@ -249,3 +249,21 @@ def test_health_endpoint_is_public(client):
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
+
+
+def test_robots_and_sitemap_are_generated_for_the_request_origin(client):
+    robots = client.get("/robots.txt")
+    assert robots.status_code == 200
+    assert "Sitemap: http://testserver/sitemap.xml" in robots.text
+    assert "Disallow: /admin" in robots.text
+
+    sitemap = client.get("/sitemap.xml")
+    assert sitemap.status_code == 200
+    assert sitemap.headers["content-type"].startswith("application/xml")
+    for path in ("/", "/privacy", "/terms"):
+        assert f"<loc>http://testserver{path}</loc>" in sitemap.text
+
+
+def test_unknown_api_path_is_a_real_404_not_the_spa(client):
+    response = client.get("/api/does-not-exist")
+    assert response.status_code == 404

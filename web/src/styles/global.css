@@ -296,6 +296,30 @@ svg {
   transform: translateY(0);
 }
 
+/* Route-level suspense fallback: a single turning arc, nothing more. */
+.route-fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-4);
+  min-height: 100dvh;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-widest);
+  text-transform: uppercase;
+  color: var(--ink-tertiary);
+}
+
+.route-fallback__mark {
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--accent-line);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: sweep 900ms linear infinite;
+}
+
 /* ==========================================================================
    Motion
    ========================================================================== */

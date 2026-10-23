@@ -2,19 +2,24 @@
 
 from __future__ import annotations
 
+import mimetypes
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from app.config import get_settings
 from app.database import create_all
 from app.routers import admin, auth, donors, hospitals, meta
 from app.routers import requests as requests_router
+
+# Python's mimetypes table does not know woff2, and serving a font as
+# application/octet-stream makes some browsers refuse it on strict MIME checks.
+mimetypes.add_type("font/woff2", ".woff2")
 
 DESCRIPTION = """
 **Blood Donation Network** — a predictive, escalating marketplace for blood.
@@ -82,9 +87,63 @@ def create_app() -> FastAPI:
             "web": "/",
         }
 
+    _add_crawl_routes(app)
     _mount_frontend(app)
 
     return app
+
+
+# Public routes a search engine may index. Console routes are deliberately
+# absent: they sit behind a JWT and carry a per-route noindex.
+_PUBLIC_ROUTES: tuple[tuple[str, str, str], ...] = (
+    ("/", "1.0", "weekly"),
+    ("/privacy", "0.3", "yearly"),
+    ("/terms", "0.3", "yearly"),
+)
+
+
+def _origin(request: Request) -> str:
+    """The origin this request arrived on, proxy headers included.
+
+    Deriving the sitemap origin from the request — rather than baking a domain
+    into the build — is what makes a custom domain work with no configuration.
+    Uvicorn trusts ``X-Forwarded-*`` by default, so this stays correct behind
+    a reverse proxy.
+    """
+
+    return str(request.base_url).rstrip("/")
+
+
+def _add_crawl_routes(app: FastAPI) -> None:
+    @app.get("/robots.txt", include_in_schema=False, response_class=PlainTextResponse)
+    def robots(request: Request) -> PlainTextResponse:
+        return PlainTextResponse(
+            "User-agent: *\n"
+            "Allow: /\n"
+            "Disallow: /donor\n"
+            "Disallow: /hospital\n"
+            "Disallow: /admin\n"
+            f"\nSitemap: {_origin(request)}/sitemap.xml\n"
+        )
+
+    @app.get("/sitemap.xml", include_in_schema=False)
+    def sitemap(request: Request) -> Response:
+        origin = _origin(request)
+        entries = "".join(
+            "  <url>\n"
+            f"    <loc>{origin}{path}</loc>\n"
+            f"    <changefreq>{freq}</changefreq>\n"
+            f"    <priority>{priority}</priority>\n"
+            "  </url>\n"
+            for path, priority, freq in _PUBLIC_ROUTES
+        )
+        return Response(
+            '<?xml version="1.0" encoding="UTF-8"?>\n'
+            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+            f"{entries}"
+            "</urlset>\n",
+            media_type="application/xml",
+        )
 
 
 def _mount_frontend(app: FastAPI) -> None:

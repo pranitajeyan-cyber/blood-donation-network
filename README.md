@@ -256,22 +256,76 @@ without CORS configuration.
 | `/hospital/inventory` | hospital | Per-group stock and consumption logging |
 | `/hospital/actions` | hospital | Register a collected unit against a fulfilled request |
 | `/admin` | admin | Live metrics, the forecaster, the backtest comparison, an on-demand escalation sweep and the audit trail |
+| `/privacy` | public | What the database stores, what it refuses to collect, and how long it is kept |
+| `/terms` | public | Scope, acceptable use, and the limits of a demonstration service |
+
+Route-level code splitting keeps the admin tables and charts out of the entry
+chunk: only Landing, the auth screens and the legal pages load up front.
+
+### Fonts, icons and social preview
+
+The three typefaces are served from `web/public/fonts/`, not from a font CDN, so
+there is no third-party request on first paint and the privacy notice can say
+so honestly. `python scripts/fetch_fonts.py` re-downloads the latin subsets and
+regenerates `web/src/styles/fonts.css`; Inter and JetBrains Mono arrive as
+variable fonts, so each family is a single file with a weight range.
+
+The favicon, the 180px touch icon and the 1200x630 social card are generated
+from the site's own mark and typefaces by `npm run og` (Playwright renders the
+card), rather than being sourced as stock imagery.
+
+### Metadata and crawling
+
+`web/index.html` carries the description, Open Graph and Twitter tags and a
+`SoftwareApplication` JSON-LD block. `usePageMeta` rewrites the title,
+description, canonical URL and `og:url` on each navigation, and marks the
+authenticated consoles `noindex`. `robots.txt` and `sitemap.xml` are generated
+per request from the incoming origin, so they describe whatever hostname is
+actually serving the app.
+
+### Deploying on a custom domain
+
+API calls, assets and sign-in all use same-origin relative paths, so changing
+the hostname needs no rebuild. Terminate TLS at a proxy and forward to uvicorn:
+
+```bash
+export BDN_SECRET_KEY="$(python -c 'import secrets; print(secrets.token_urlsafe(48))')"
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers
+```
+
+Three details are read from the request rather than baked into the bundle, and
+stay correct on any domain: the sitemap and `robots.txt` origins, the canonical
+and Open Graph URLs, and the absolute preview-image URL. Keep `--proxy-headers`
+enabled so `X-Forwarded-Proto` and `X-Forwarded-Host` reach the app; without it
+the generated URLs will say `http` and name the internal host.
+
+If you must split the SPA and API across hosts, set `VITE_API_BASE` at build
+time to the API origin. `BDN_DATABASE_URL` points the server at Postgres
+instead of SQLite. The default secret key in `app/config.py` is deliberately
+insecure — replace it before exposing the app.
+
+Real services also need more than this demo provides: clinical validation,
+retention automation, an account-deletion endpoint, and audit review. See the
+privacy and terms pages for what is and is not claimed.
 
 ### Verification
 
-Two harnesses exercise the client against a running server:
+Three harnesses exercise the client against a running server:
 
 ```bash
 python scripts/e2e_web.py          # 30 API-contract checks, incl. the escalation ladder
-node web/scripts/browser-check.mjs # 28 browser checks across all three roles
-node web/scripts/design-audit.mjs  # 26 layout/contrast/structure checks
+node web/scripts/browser-check.mjs # browser checks across all three roles and both legal routes
+node web/scripts/design-audit.mjs  # layout, contrast, shape, metadata and crawl checks
 ```
 
 The browser check fails on any console error, page error or 5xx response, and
-the design audit asserts the dark base, WCAG AA contrast, single-`h1` hierarchy,
-absence of emoji and of horizontal overflow at desktop, tablet and phone widths.
-Playwright is a dev dependency of `web/`; run `npx playwright install chromium`
-once after `npm install`.
+walks the footer's Privacy and Terms links and the skip link to prove they are
+real navigation. The design audit asserts the dark base, WCAG AA contrast,
+single-`h1` hierarchy, absence of emoji, absence of purple, absence of
+pill-shaped buttons and of horizontal overflow at desktop, tablet and phone
+widths, and that the metadata, `robots.txt`, `sitemap.xml` and social card all
+resolve. Playwright is a dev dependency of `web/`; run
+`npx playwright install chromium` once after `npm install`.
 
 ---
 

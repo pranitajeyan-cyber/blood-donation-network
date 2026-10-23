@@ -38,6 +38,8 @@ const PUBLIC = [
   ['/', 'Blood Donation Network'],
   ['/login', 'form'],
   ['/register', 'form'],
+  ['/privacy', 'What this service is'],
+  ['/terms', 'It is not a medical service'],
   ['/does-not-exist', '404'],
 ]
 
@@ -73,6 +75,46 @@ for (const [path, needle] of PUBLIC) {
   )
   record(`GET ${path} has no console errors`, problems.length === 0, problems.join(' | '))
 }
+
+// --- the footer and skip link are real navigation --------------------------
+await page.goto(ORIGIN + '/', { waitUntil: 'networkidle' })
+await page.keyboard.press('Tab')
+const firstFocus = await page.evaluate(() => ({
+  tag: document.activeElement?.tagName?.toLowerCase() ?? '',
+  className: document.activeElement?.className?.toString() ?? '',
+  href: document.activeElement?.getAttribute('href') ?? '',
+}))
+record(
+  'first Tab lands on the skip link',
+  firstFocus.className === 'skip-link' && firstFocus.href === '#main',
+  `${firstFocus.tag}.${firstFocus.className} -> ${firstFocus.href}`,
+)
+
+await page.click('.site-footer__links a[href="/privacy"]')
+await page.waitForURL('**/privacy', { timeout: 10000 })
+record('footer Privacy link navigates client-side', page.url().endsWith('/privacy'), page.url())
+
+await page.click('.site-footer__links a[href="/terms"]')
+await page.waitForURL('**/terms', { timeout: 10000 })
+record('footer Terms link navigates client-side', page.url().endsWith('/terms'), page.url())
+
+// The title is written by an effect after the route commits, so wait for it
+// rather than sampling in the same tick as the URL change.
+const legalTitle = await page
+  .waitForFunction(() => document.title.startsWith('Terms of use'), { timeout: 5000 })
+  .then(() => page.title())
+  .catch(() => page.title())
+record(
+  'legal page sets its own document title',
+  legalTitle.startsWith('Terms of use'),
+  legalTitle,
+)
+const legalBody = await page.locator('body').innerText()
+record(
+  'legal page renders its own content',
+  legalBody.includes('It is not a medical service'),
+  `${legalBody.length} chars`,
+)
 
 // --- the sign-in form actually works ---------------------------------------
 problems = []
